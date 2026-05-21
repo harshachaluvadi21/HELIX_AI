@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS / IDE configurations
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Virtual Environments
+venv/
+.venv/
+env/
+.env
+
+# Database and sandbox data
+chroma_db/
+.secret_key
+sandbox/
+fallback_db.json
+
+# Logs and outputs
+*.log

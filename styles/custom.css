@@ -1,0 +1,191 @@
+/* Custom Typography Imports */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+/* Global Styles */
+html, body, [data-testid="stAppViewContainer"] {
+    background-color: #090A0F !important;
+    font-family: 'Outfit', sans-serif !important;
+    color: #E2E8F0 !important;
+}
+
+[data-testid="stHeader"] {
+    background: rgba(9, 10, 15, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+[data-testid="stSidebar"] {
+    background-color: #0D0E16 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Glassmorphism Surface Cards */
+.glass-card {
+    background: rgba(17, 19, 31, 0.65) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(124, 58, 237, 0.25) !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+    margin-bottom: 20px !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.glass-card:hover {
+    transform: translateY(-4px) !important;
+    border-color: rgba(6, 182, 212, 0.60) !important;
+    box-shadow: 0 12px 40px 0 rgba(124, 58, 237, 0.15) !important;
+}
+
+/* Glassmorphism Metric Dashboard Cards */
+.metric-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.metric-box {
+    flex: 1;
+    background: rgba(22, 24, 37, 0.5) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-left: 4px solid #7C3AED !important;
+    border-radius: 8px !important;
+    padding: 15px !important;
+    text-align: left;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.metric-box:hover {
+    transform: scale(1.02);
+    border-left-color: #06B6D4 !important;
+}
+
+.metric-title {
+    font-size: 0.85rem !important;
+    color: #94A3B8 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.metric-val {
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+    font-family: 'Outfit', sans-serif !important;
+}
+
+/* Glowing Titles & Header */
+.glow-title {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 800 !important;
+    font-size: 2.6rem !important;
+    background: linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    margin-bottom: 5px !important;
+    text-shadow: 0 0 35px rgba(124, 58, 237, 0.25) !important;
+}
+
+.glow-subtitle {
+    color: #94A3B8 !important;
+    font-size: 1rem !important;
+    margin-bottom: 25px !important;
+}
+
+/* Interactive Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 30px;
+    text-transform: uppercase;
+}
+
+.badge-critical {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #F87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+.badge-high {
+    background: rgba(249, 115, 22, 0.15) !important;
+    color: #FB923C !important;
+    border: 1px solid rgba(249, 115, 22, 0.3) !important;
+}
+
+.badge-medium {
+    background: rgba(234, 179, 8, 0.15) !important;
+    color: #FACC15 !important;
+    border: 1px solid rgba(234, 179, 8, 0.3) !important;
+}
+
+.badge-low {
+    background: rgba(34, 197, 94, 0.15) !important;
+    color: #4ADE80 !important;
+    border: 1px solid rgba(34, 197, 94, 0.3) !important;
+}
+
+/* Code Syntax Panel Styles */
+.code-panel {
+    font-family: 'JetBrains Mono', monospace !important;
+    background-color: #050508 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 8px !important;
+    padding: 15px !important;
+    font-size: 0.9rem !important;
+    color: #E2E8F0 !important;
+    overflow-x: auto;
+}
+
+/* Sidebar Custom Elements */
+.sidebar-logo {
+    text-align: center;
+    padding: 10px 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-logo img {
+    max-width: 60px;
+}
+
+.sidebar-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: #FFFFFF;
+}
+
+/* Markdown Table Adjustments */
+table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 15px !important;
+    background: rgba(17, 19, 31, 0.4) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+th {
+    background-color: rgba(124, 58, 237, 0.1) !important;
+    color: #7C3AED !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    padding: 12px 16px !important;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+td {
+    padding: 12px 16px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+    color: #CBD5E1 !important;
+}
+
+tr:hover {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+}
