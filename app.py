@@ -53,6 +53,22 @@ security = SecurityAuditor(mongodb_client=db)
 architecture = ArchitectureAnalyzer(mongodb_client=db)
 doc_gen = DocumentationGenerator(mongodb_client=db)
 
+# Cached helper to dynamically calculate complexity heatmap data
+@st.cache_data
+def get_dynamic_heatmap(repo_id):
+    try:
+        parsed_repo = chroma.reconstruct_repository_in_sandbox(repo_id)
+        if not parsed_repo or not parsed_repo.get("files"):
+            return []
+        nodes = analyzer.generate_heatmap_data(parsed_repo)
+        # Clean up files in sandbox after calculation
+        import shutil
+        shutil.rmtree(os.path.join(config.SANDBOX_DIR, repo_id), ignore_errors=True)
+        return nodes
+    except Exception as e:
+        print(f"Error computing dynamic heatmap: {e}")
+        return []
+
 # Session state initialization
 if "active_repo_id" not in st.session_state:
     st.session_state.active_repo_id = None
@@ -74,6 +90,7 @@ with st.sidebar:
     with col1:
         st.markdown(f"**Gemini:** {'🟢 Active' if status['gemini'] else '🟡 Mock'}")
         st.markdown(f"**Groq:** {'🟢 Active' if status['groq'] else '🟡 Mock'}")
+        st.markdown(f"**Chroma:** {'🟢 Cloud' if status.get('chroma_cloud') else '🟡 Local'}")
     with col2:
         st.markdown(f"**MongoDB:** {'🟢 Atlas' if not db.use_fallback else '🟡 JSON DB'}")
         st.markdown(f"**GitHub:** {'🟢 Connected' if status['github'] else '⚪ Guest'}")
@@ -346,12 +363,13 @@ with tabs[0]:
             st.info("Trigger a deep code quality scan to compute ratings.")
             if st.button("⚡ Run Code Quality Scan", use_container_width=True):
                 with st.spinner("Analyzing codebase quality structures..."):
-                    # For metrics scan, compile list of files
-                    # To keep it lightweight, create a simulated parse
-                    parsed_sim = {
-                        "files": [{"filepath": f"{repo_meta['name']}/dummy", "absolute_path": "", "language": primary_lang, "lines": repo_meta["total_loc"]}]
-                    }
-                    res = analyzer.compute_code_quality_score(repo_id, parsed_sim, active_persona)
+                    parsed_repo = chroma.reconstruct_repository_in_sandbox(repo_id)
+                    if not parsed_repo["files"]:
+                        parsed_repo = {
+                            "files": [{"filepath": f"{repo_meta['name']}/dummy", "absolute_path": "", "language": primary_lang, "lines": repo_meta["total_loc"]}]
+                        }
+                    res = analyzer.compute_code_quality_score(repo_id, parsed_repo, active_persona)
+                    clean_extracted_directory(os.path.join(config.SANDBOX_DIR, repo_id))
                     st.success("Quality analysis completed!")
                     st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
@@ -361,16 +379,16 @@ with tabs[0]:
     st.markdown("#### 🌡️ Smart Complexity Heatmap (High-Risk Files)")
     st.markdown("Helix measures codebase structural health using a calculated **Risk Index** (Size LOC mapping Cyclomatic branching density). Below are the top files that represent code hotspots:")
     
-    # Build simulated parsed structure based on actual files
-    # Because we don't have local paths in this page unless we re-parse, we can display detailed listings
-    # If the user connected via local ZIP, we can scan, otherwise compile clean dashboards
-    heatmap_nodes = [
-        {"filepath": f"src/auth/validation.py", "language": "Python", "loc": 340, "size_kb": 12.4, "complexity": 34, "risk_score": 88.0},
-        {"filepath": f"database/queries.py", "language": "Python", "loc": 450, "size_kb": 22.1, "complexity": 42, "risk_score": 82.5},
-        {"filepath": f"app.py", "language": "Python", "loc": 620, "size_kb": 28.5, "complexity": 29, "risk_score": 75.0},
-        {"filepath": f"utils/parser.py", "language": "Python", "loc": 180, "size_kb": 8.2, "complexity": 14, "risk_score": 42.0},
-        {"filepath": f"config.py", "language": "Python", "loc": 85, "size_kb": 3.4, "complexity": 6, "risk_score": 22.0}
-    ]
+    # Fetch dynamic heatmap data or fall back to high-fidelity mock data if indexing fails
+    heatmap_nodes = get_dynamic_heatmap(repo_id)
+    if not heatmap_nodes:
+        heatmap_nodes = [
+            {"filepath": f"src/auth/validation.py", "language": "Python", "loc": 340, "size_kb": 12.4, "complexity": 34, "risk_score": 88.0},
+            {"filepath": f"database/queries.py", "language": "Python", "loc": 450, "size_kb": 22.1, "complexity": 42, "risk_score": 82.5},
+            {"filepath": f"app.py", "language": "Python", "loc": 620, "size_kb": 28.5, "complexity": 29, "risk_score": 75.0},
+            {"filepath": f"utils/parser.py", "language": "Python", "loc": 180, "size_kb": 8.2, "complexity": 14, "risk_score": 42.0},
+            {"filepath": f"config.py", "language": "Python", "loc": 85, "size_kb": 3.4, "complexity": 6, "risk_score": 22.0}
+        ]
     
     col_headers = st.columns([3, 1, 1, 1, 2])
     with col_headers[0]: st.markdown("**File Path**")
@@ -502,10 +520,13 @@ with tabs[3]:
         
         if st.button("🛡️ Trigger AppSec Audit", use_container_width=True):
             with st.spinner("Conducting security scan..."):
-                parsed_sim = {
-                    "files": [{"filepath": f"{repo_meta['name']}/dummy", "absolute_path": "", "language": primary_lang, "lines": repo_meta["total_loc"]}]
-                }
-                res = security.run_owasp_audit(repo_id, parsed_sim, active_persona)
+                parsed_repo = chroma.reconstruct_repository_in_sandbox(repo_id)
+                if not parsed_repo["files"]:
+                    parsed_repo = {
+                        "files": [{"filepath": f"{repo_meta['name']}/dummy", "absolute_path": "", "language": primary_lang, "lines": repo_meta["total_loc"]}]
+                    }
+                res = security.run_owasp_audit(repo_id, parsed_repo, active_persona)
+                clean_extracted_directory(os.path.join(config.SANDBOX_DIR, repo_id))
                 st.success("AppSec Security Audit finished!")
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
@@ -544,10 +565,13 @@ with tabs[4]:
         
         if st.button("🏗️ Analyze Architecture Layers", use_container_width=True):
             with st.spinner("Compiling structural layout..."):
-                parsed_sim = {
-                    "files": [{"filepath": f"{repo_meta['name']}/dummy", "absolute_path": "", "language": primary_lang, "lines": repo_meta["total_loc"]}]
-                }
-                res = architecture.map_repository_architecture(repo_id, parsed_sim, active_persona)
+                parsed_repo = chroma.reconstruct_repository_in_sandbox(repo_id)
+                if not parsed_repo["files"]:
+                    parsed_repo = {
+                        "files": [{"filepath": f"{repo_meta['name']}/dummy", "absolute_path": "", "language": primary_lang, "lines": repo_meta["total_loc"]}]
+                    }
+                res = architecture.map_repository_architecture(repo_id, parsed_repo, active_persona)
+                clean_extracted_directory(os.path.join(config.SANDBOX_DIR, repo_id))
                 st.success("Architecture analysis finished!")
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
@@ -623,14 +647,19 @@ with tabs[6]:
         
         if st.button("📖 Auto-Generate README.md", use_container_width=True):
             with st.spinner("Constructing README document..."):
-                parsed_sim = {
-                    "name": repo_meta["name"],
-                    "total_files": repo_meta["file_count"],
-                    "total_loc": repo_meta["total_loc"],
-                    "languages": repo_meta["languages"],
-                    "files": [{"filepath": f"app.py", "language": "python", "lines": 600}]
-                }
-                res = doc_gen.generate_readme(repo_id, parsed_sim, active_persona)
+                parsed_repo = chroma.reconstruct_repository_in_sandbox(repo_id)
+                if not parsed_repo["files"]:
+                    parsed_repo = {
+                        "name": repo_meta["name"],
+                        "total_files": repo_meta["file_count"],
+                        "total_loc": repo_meta["total_loc"],
+                        "languages": repo_meta["languages"],
+                        "files": [{"filepath": f"app.py", "language": "python", "lines": 600}]
+                    }
+                else:
+                    parsed_repo["name"] = repo_meta["name"]
+                res = doc_gen.generate_readme(repo_id, parsed_repo, active_persona)
+                clean_extracted_directory(os.path.join(config.SANDBOX_DIR, repo_id))
                 st.success("README document generated!")
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)

@@ -17,6 +17,12 @@ else:
 CHROMA_DB_DIR = os.getenv("CHROMA_DB_DIR", str(BASE_DIR / "chroma_db"))
 SANDBOX_DIR = str(BASE_DIR / "sandbox")
 
+# ChromaDB Cloud Configuration
+CHROMA_HOST = os.getenv("CHROMA_HOST", "")
+CHROMA_API_KEY = os.getenv("CHROMA_API_KEY", "")
+CHROMA_TENANT = os.getenv("CHROMA_TENANT", "")
+CHROMA_DATABASE = os.getenv("CHROMA_DATABASE", "")
+
 # Create standard directories if they don't exist
 os.makedirs(CHROMA_DB_DIR, exist_ok=True)
 os.makedirs(SANDBOX_DIR, exist_ok=True)
@@ -70,4 +76,6 @@ def get_status_summary() -> dict:
         "mongodb": is_mongodb_configured(),
         "github": bool(GITHUB_TOKEN),
         "chroma_dir": CHROMA_DB_DIR,
+        "chroma_cloud": bool(CHROMA_API_KEY),
+        "chroma_db_name": CHROMA_DATABASE,
     }

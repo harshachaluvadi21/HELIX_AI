@@ -20,9 +20,29 @@ LANGCHAIN_LANG_MAP = {
 
 class ChromaDBClient:
     def __init__(self, persist_dir: Optional[str] = None):
-        """Initializes the ChromaDB persistent or in-memory client."""
+        """Initializes the ChromaDB persistent, in-memory, or cloud client."""
         self.persist_dir = persist_dir or config.CHROMA_DB_DIR
         
+        if config.CHROMA_API_KEY:
+            try:
+                # Initialize CloudClient for Chroma Cloud
+                self.client = chromadb.CloudClient(
+                    tenant=config.CHROMA_TENANT or None,
+                    database=config.CHROMA_DATABASE or None,
+                    api_key=config.CHROMA_API_KEY,
+                    cloud_host=config.CHROMA_HOST or "api.trychroma.com"
+                )
+                print(f"ChromaDB CloudClient initialized (host={config.CHROMA_HOST or 'api.trychroma.com'}, database={config.CHROMA_DATABASE})")
+            except Exception as e:
+                print(f"Could not initialize Chroma CloudClient: {e}. Falling back to local persistent/ephemeral client.")
+                self._init_local_client()
+        else:
+            self._init_local_client()
+            
+        self.embeddings = GeminiEmbeddings()
+
+    def _init_local_client(self):
+        """Helper to initialize local persistent or ephemeral Chroma client."""
         try:
             # Persistent client
             self.client = chromadb.PersistentClient(path=self.persist_dir)
@@ -31,8 +51,6 @@ class ChromaDBClient:
             # Fallback to ephemeral in-memory client (extremely robust for sandboxed/windows tests)
             print(f"Could not initialize persistent ChromaDB: {e}. Falling back to Ephemeral Client.")
             self.client = chromadb.EphemeralClient()
-            
-        self.embeddings = GeminiEmbeddings()
 
     def _get_safe_collection_name(self, repo_id: str) -> str:
         """
@@ -216,3 +234,89 @@ class ChromaDBClient:
         except Exception as e:
             print(f"Error querying ChromaDB repository {repo_id}: {e}")
             return []
+
+    def reconstruct_repository_in_sandbox(self, repo_id: str) -> Dict[str, Any]:
+        """
+        Retrieves all code chunks from ChromaDB for this repository,
+        reconstructs the source code files in the sandbox directory,
+        and returns a parsed codebase structure with actual file paths.
+        """
+        import shutil
+        collection_name = self._get_safe_collection_name(repo_id)
+        collection = self.client.get_or_create_collection(name=collection_name)
+        
+        # Get all documents and metadatas (use a high limit to get all chunks)
+        results = collection.get(include=["documents", "metadatas"])
+        
+        files_data = {}
+        if results and results.get("documents"):
+            docs = results["documents"]
+            metas = results["metadatas"]
+            
+            for idx in range(len(docs)):
+                doc_text = docs[idx]
+                meta = metas[idx]
+                filepath = meta.get("filepath")
+                language = meta.get("language", "Other")
+                start_line = meta.get("start_line", 1)
+                
+                if not filepath:
+                    continue
+                    
+                if filepath not in files_data:
+                    files_data[filepath] = {
+                        "language": language,
+                        "chunks": []
+                    }
+                files_data[filepath]["chunks"].append((start_line, doc_text))
+        
+        # Write files back to sandbox and build parsed_repo structure
+        sandbox_repo_dir = os.path.join(config.SANDBOX_DIR, repo_id)
+        os.makedirs(sandbox_repo_dir, exist_ok=True)
+        
+        parsed_files = []
+        total_loc = 0
+        total_size = 0
+        languages = {}
+        
+        for filepath, f_info in files_data.items():
+            # Sort chunks by start line to reconstruct sequentially
+            sorted_chunks = sorted(f_info["chunks"], key=lambda x: x[0])
+            full_content = "".join([chunk[1] for chunk in sorted_chunks])
+            
+            abs_path = os.path.join(sandbox_repo_dir, filepath.replace("/", os.sep))
+            os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+            
+            with open(abs_path, "w", encoding="utf-8", errors="ignore") as f:
+                f.write(full_content)
+                
+            lines = len(full_content.splitlines())
+            size_bytes = len(full_content.encode("utf-8", errors="ignore"))
+            
+            parsed_files.append({
+                "filepath": filepath,
+                "absolute_path": abs_path,
+                "language": f_info["language"],
+                "lines": lines,
+                "size_bytes": size_bytes
+            })
+            
+            total_loc += lines
+            total_size += size_bytes
+            languages[f_info["language"]] = languages.get(f_info["language"], 0) + lines
+            
+        # Calculate percentages
+        language_percentages = {}
+        if total_loc > 0:
+            for lang, loc_count in languages.items():
+                language_percentages[lang] = round((loc_count / total_loc) * 100, 2)
+        sorted_languages = dict(sorted(language_percentages.items(), key=lambda item: item[1], reverse=True))
+        
+        return {
+            "files": parsed_files,
+            "languages": sorted_languages,
+            "total_files": len(parsed_files),
+            "total_loc": total_loc,
+            "total_size_bytes": total_size
+        }
+

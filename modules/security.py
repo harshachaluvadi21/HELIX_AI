@@ -74,7 +74,17 @@ class SecurityAuditor:
             abs_path = file["absolute_path"]
             try:
                 with open(abs_path, "r", encoding="utf-8", errors="ignore") as f:
-                    content = f.read()[:1500]  # First 1500 chars
+                    lines = f.readlines()
+                
+                content_lines = []
+                current_len = 0
+                for line in lines:
+                    if current_len + len(line) > 30000:
+                        break
+                    content_lines.append(line)
+                    current_len += len(line)
+                
+                content = "".join(content_lines)
                 code_context.append(f"File: {file['filepath']}\n```\n{content}\n```")
             except Exception:
                 pass
