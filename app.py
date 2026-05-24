@@ -132,7 +132,7 @@ with st.sidebar:
     
     # 2. Select Repository Context
     st.markdown("### 📁 Active Repository")
-    all_repos = db.get_all_repositories()
+    all_repos = db.get_all_repositories(username=st.session_state.username)
     
     if all_repos:
         repo_options = {r["_id"]: f"{r['name']} ({r['source_type'].upper()})" for r in all_repos}
@@ -186,7 +186,8 @@ with st.sidebar:
                                     "branch": git_branch,
                                     "file_count": parsed_data["total_files"],
                                     "total_loc": parsed_data["total_loc"],
-                                    "languages": parsed_data["languages"]
+                                    "languages": parsed_data["languages"],
+                                    "username": st.session_state.username
                                 }
                                 repo_id = db.save_repository(repo_record)
                                 st.session_state.active_repo_id = repo_id
@@ -245,7 +246,8 @@ with st.sidebar:
                             "branch": "local",
                             "file_count": parsed_data["total_files"],
                             "total_loc": parsed_data["total_loc"],
-                            "languages": parsed_data["languages"]
+                            "languages": parsed_data["languages"],
+                            "username": st.session_state.username
                         }
                         repo_id = db.save_repository(repo_record)
                         st.session_state.active_repo_id = repo_id

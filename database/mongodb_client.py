@@ -66,18 +66,19 @@ class MongoDBClient:
     # --- REPOSITORY METADATA SECTION ---
 
     def save_repository(self, repo_data: Dict[str, Any]) -> str:
-        """Saves a repository index details, updating if already exists."""
+        """Saves a repository index details, updating if already exists for this user."""
         repo_data = repo_data.copy()
+        username = repo_data.get("username")
         
         if self.use_fallback:
             repo_id = repo_data.get("_id") or self._generate_id()
             repo_data["_id"] = repo_id
             repo_data["last_indexed_at"] = repo_data.get("last_indexed_at", time.time())
             
-            # Upsert by name
+            # Upsert by name and username
             existing_id = None
             for rid, rdata in self.fallback_data["repositories"].items():
-                if rdata.get("name") == repo_data.get("name"):
+                if rdata.get("name") == repo_data.get("name") and rdata.get("username") == username:
                     existing_id = rid
                     break
             
@@ -91,9 +92,12 @@ class MongoDBClient:
             self._save_fallback_db()
             return repo_id
         else:
-            # Query by name first
+            # Query by name and username
             coll = self.db["repositories"]
-            existing = coll.find_one({"name": repo_data.get("name")})
+            query = {"name": repo_data.get("name")}
+            if username:
+                query["username"] = username
+            existing = coll.find_one(query)
             
             repo_data["last_indexed_at"] = time.time()
             if existing:
@@ -114,14 +118,19 @@ class MongoDBClient:
                 res["_id"] = str(res["_id"])
             return res
 
-    def get_all_repositories(self) -> List[Dict[str, Any]]:
-        """Retrieves all indexed repositories."""
+    def get_all_repositories(self, username: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Retrieves indexed repositories, optionally filtered by username."""
         if self.use_fallback:
-            # Return as list
-            return list(self.fallback_data["repositories"].values())
+            repos = list(self.fallback_data["repositories"].values())
+            if username:
+                repos = [r for r in repos if r.get("username") == username]
+            return repos
         else:
             coll = self.db["repositories"]
-            results = list(coll.find().sort("last_indexed_at", pymongo.DESCENDING))
+            query = {}
+            if username:
+                query = {"username": username}
+            results = list(coll.find(query).sort("last_indexed_at", pymongo.DESCENDING))
             for res in results:
                 res["_id"] = str(res["_id"])
             return results
