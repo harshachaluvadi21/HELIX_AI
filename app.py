@@ -70,6 +70,8 @@ def get_dynamic_heatmap(repo_id):
         return []
 
 # Session state initialization
+if "username" not in st.session_state:
+    st.session_state.username = None
 if "active_repo_id" not in st.session_state:
     st.session_state.active_repo_id = None
 if "active_chat_id" not in st.session_state:
@@ -77,10 +79,41 @@ if "active_chat_id" not in st.session_state:
 if "selected_tab" not in st.session_state:
     st.session_state.selected_tab = "Overview"
 
+# ----------------- AUTHENTICATION LANDING GATE -----------------
+if not st.session_state.username:
+    col_l, col_c, col_r = st.columns([1, 2, 1])
+    with col_c:
+        st.markdown('<div style="height: 80px;"></div>', unsafe_allow_html=True)
+        st.markdown('<h1 class="glow-title" style="text-align: center;">🧬 HELIX ENGINE</h1>', unsafe_allow_html=True)
+        st.markdown('<p class="glow-subtitle" style="text-align: center;">Premium AI-Powered Codebase RAG, AppSec Audit and Architecture Mapping Platform</p>', unsafe_allow_html=True)
+        
+        with st.form("auth_form", clear_on_submit=False):
+            st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+            st.markdown('<h3 style="color: #FFFFFF; font-family: \'Outfit\', sans-serif; text-align: center; margin-bottom: 15px;">🔒 Cognitive Access Gateway</h3>', unsafe_allow_html=True)
+            st.markdown('<p style="color: #94A3B8; font-size: 0.9rem; text-align: center; margin-bottom: 20px;">Please authenticate with your developer username to initialize secure repository telemetry and AI diagnostic workflows.</p>', unsafe_allow_html=True)
+            
+            user_input = st.text_input("Developer Username", placeholder="e.g. harsh_dev", key="auth_username")
+            
+            st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
+            submit_btn = st.form_submit_button("🚀 Authorize & Launch Session", use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            if submit_btn:
+                if user_input.strip():
+                    st.session_state.username = user_input.strip()
+                    st.success(f"Access granted! Welcome, {user_input.strip()}!")
+                    st.rerun()
+                else:
+                    st.error("Authentication Failed: A valid username is required to enter.")
+        st.stop()
+
 # ----------------- SIDEBAR CONTROLS -----------------
 
 with st.sidebar:
     st.markdown('<div class="sidebar-logo"><span class="sidebar-title">🧬 HELIX // INDEXER</span></div>', unsafe_allow_html=True)
+    
+    # Active Developer Identity
+    st.markdown(f'<div style="background: rgba(124, 58, 237, 0.12); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 8px; padding: 12px; margin-bottom: 20px; text-align: center;"><span style="color: #06B6D4; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">👤 Active Developer</span><br/><strong style="color: #FFFFFF; font-size: 1.05rem;">{st.session_state.username}</strong></div>', unsafe_allow_html=True)
     
     # 1. API Status and Key drawer
     st.markdown("### 🔌 Connection Status")
@@ -251,6 +284,14 @@ with st.sidebar:
                 st.session_state.active_chat_id = None
                 st.success(f"Deleted repository data successfully.")
                 st.rerun()
+
+    # 5. Session Termination
+    st.markdown("---")
+    if st.button("🚪 Terminate Session", type="secondary", use_container_width=True):
+        st.session_state.username = None
+        st.session_state.active_repo_id = None
+        st.session_state.active_chat_id = None
+        st.rerun()
 
 # ----------------- MASTER HEADER SECTION -----------------
 
