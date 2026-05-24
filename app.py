@@ -300,20 +300,25 @@ with st.sidebar:
 st.markdown('<h1 class="glow-title">🧬 HELIX COGNITIVE ENGINE</h1>', unsafe_allow_html=True)
 st.markdown('<p class="glow-subtitle">Premium AI-Powered Codebase RAG, AppSec Audit and Architecture Mapping Platform</p>', unsafe_allow_html=True)
 
-# Check if a repository is indexed & selected
 if not st.session_state.active_repo_id:
     # Render Onboarding Welcome Dashboard
+    status = config.get_status_summary()
+    gemini_status = "🟢 **Gemini API Key:** Detected and active!" if status["gemini"] else "🟡 **Gemini API Key:** Operating in Mock Mode (add `GEMINI_API_KEY` to `.env` to activate)"
+    groq_status = "🟢 **Groq API Key:** Detected and active!" if status["groq"] else "🟡 **Groq API Key:** Operating in Mock Mode (add `GROQ_API_KEY` to `.env` to activate)"
+    
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     st.markdown("### 👋 Welcome to Helix Repository Intelligence!")
     st.markdown(
-        "Unlock full cognitive visibility over your source code repositories using **Generative AI, semantic vector search, and unified RAG workflows**.\n\n"
-        "#### How to get started:\n"
-        "1. **Provide API Credentials** (Optional) - Add `GEMINI_API_KEY` and `GROQ_API_KEY` to your `.env` to unlock live LLM analysis. The platform operates on a robust, highly descriptive Mock architecture if keys are missing.\n"
-        "2. **Connect a Repository** - Use the **Sidebar panel** on the left:\n"
-        "   - Input a public **GitHub Repository URL** (e.g. `https://github.com/google/guava`) and click Index.\n"
-        "   - Or **Upload a local ZIP** codebase archive.\n"
-        "3. **Semantic Mapping** - Helix will automatically safely extract, filter packages (`node_modules`, `.git`), sort languages, split files with AST-aware rules, compute vector embeddings, and build your searchable directory indices.\n\n"
-        "Once indexed, you'll gain access to deep code scoring dashboards, OWASP AppSec scanning, pull request reviews, dependency flow diagram charts, and persistent conversational codechats!"
+        f"Unlock full cognitive visibility over your source code repositories using **Generative AI, semantic vector search, and unified RAG workflows**.\n\n"
+        f"#### 🔌 API Connection Status:\n"
+        f"* {gemini_status}\n"
+        f"* {groq_status}\n\n"
+        f"#### How to get started:\n"
+        f"1. **Connect a Repository** - Use the **Sidebar panel** on the left:\n"
+        f"   - Input a public **GitHub Repository URL** (e.g. `https://github.com/google/guava`) and click Index.\n"
+        f"   - Or **Upload a local ZIP** codebase archive.\n"
+        f"2. **Semantic Mapping** - Helix will automatically safely extract, filter packages (`node_modules`, `.git`), sort languages, split files with AST-aware rules, compute vector embeddings, and build your searchable directory indices.\n\n"
+        f"Once indexed, you'll gain access to deep code scoring dashboards, OWASP AppSec scanning, pull request reviews, dependency flow diagram charts, and persistent conversational codechats!"
     )
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
